@@ -41,27 +41,35 @@ public class KitchenGUIController {
         }
     });
 
+    private void onCookAction(){
+        selectedOrder = kitchenOrdersList.getSelectionModel().getSelectedItem();
+        kitchenOrdersList.getItems().remove(selectedOrder);
+        kitchenOrdersList.getItems().add(selectedOrder.toString()
+                .concat(" Cooking started at: ").toUpperCase()
+                .concat(now.get(Calendar.HOUR)+":"+now.get(Calendar.MINUTE)));
+    }
+
+    private void onReadyAction(){
+        selectedOrder = kitchenOrdersList.getSelectionModel().getSelectedItem();
+        kitchenOrdersList.getItems().remove(selectedOrder);
+        extractedTableNumberString = selectedOrder.toString().subSequence(5, 6).toString();
+        extractedTableNumberInteger = Integer.valueOf(extractedTableNumberString);
+        System.out.println("--------------------------");
+        System.out.println("Table " + extractedTableNumberInteger +" ready at: " + now.get(Calendar.HOUR)+":"+now.get(Calendar.MINUTE));
+        System.out.println("--------------------------");
+    }
+
     public void initialize() {
         //starting thread for adding data to kitchenOrderList
         addOrders.setDaemon(true);
         addOrders.start();
         //Controller for Cook Button
         cook.setOnAction(event -> {
-            selectedOrder = kitchenOrdersList.getSelectionModel().getSelectedItem();
-            kitchenOrdersList.getItems().remove(selectedOrder);
-            kitchenOrdersList.getItems().add(selectedOrder.toString()
-                     .concat(" Cooking started at: ").toUpperCase()
-                     .concat(now.get(Calendar.HOUR)+":"+now.get(Calendar.MINUTE)));
+            onCookAction();
         });
         //Controller for Ready Button
         ready.setOnAction(event -> {
-            selectedOrder = kitchenOrdersList.getSelectionModel().getSelectedItem();
-            kitchenOrdersList.getItems().remove(selectedOrder);
-            extractedTableNumberString = selectedOrder.toString().subSequence(5, 6).toString();
-            extractedTableNumberInteger = Integer.valueOf(extractedTableNumberString);
-            System.out.println("--------------------------");
-            System.out.println("Table " + extractedTableNumberInteger +" ready at: " + now.get(Calendar.HOUR)+":"+now.get(Calendar.MINUTE));
-            System.out.println("--------------------------");
+            onReadyAction();
         });
     }
 }

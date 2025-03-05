@@ -9,8 +9,7 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.stage.Stage;
 import pizzashop.model.MenuDataModel;
-import pizzashop.gui.OrdersGUI;
-import pizzashop.service.PaymentAlert;
+import pizzashop.utilities.PaymentAlert;
 import pizzashop.service.PizzaService;
 
 import java.util.Calendar;
@@ -71,6 +70,34 @@ public class OrdersGUIController {
 
     }
 
+    private void onPlaceOrderAction(){
+        orderList= menuData.stream()
+                .filter(x -> x.getQuantity()>0)
+                .map(menuDataModel -> menuDataModel.getQuantity() +" "+ menuDataModel.getMenuItem())
+                .collect(Collectors.toList());
+        observableList = FXCollections.observableList(orderList);
+        KitchenGUIController.order.add("Table" + tableNumber +" "+ orderList.toString());
+        orderStatus.setText("Order placed at: " +  now.get(Calendar.HOUR)+":"+now.get(Calendar.MINUTE));
+    }
+
+    private void onServedAction(){
+        orderStatus.setText("Served at: " + now.get(Calendar.HOUR)+":"+now.get(Calendar.MINUTE));
+    }
+
+    private void onPayOrderAction(){
+        orderPaymentList= menuData.stream()
+                .filter(x -> x.getQuantity()>0)
+                .map(menuDataModel -> menuDataModel.getQuantity()*menuDataModel.getPrice())
+                .collect(Collectors.toList());
+        setTotalAmount(orderPaymentList.stream().mapToDouble(e->e.doubleValue()).sum());
+        orderStatus.setText("Total amount: " + getTotalAmount());
+        System.out.println("--------------------------");
+        System.out.println("Table: " + tableNumber);
+        System.out.println("Total: " + getTotalAmount());
+        System.out.println("--------------------------");
+        PaymentAlert pay = new PaymentAlert(service);
+        pay.showPaymentAlert(tableNumber, this.getTotalAmount());
+    }
     private void initData(){
         menuData = FXCollections.observableArrayList(service.getMenuData());
         menuData.setAll(service.getMenuData());
@@ -78,34 +105,37 @@ public class OrdersGUIController {
 
         //Controller for Place Order Button
         placeOrder.setOnAction(event ->{
-            orderList= menuData.stream()
-                    .filter(x -> x.getQuantity()>0)
-                    .map(menuDataModel -> menuDataModel.getQuantity() +" "+ menuDataModel.getMenuItem())
-                    .collect(Collectors.toList());
-            observableList = FXCollections.observableList(orderList);
-            KitchenGUIController.order.add("Table" + tableNumber +" "+ orderList.toString());
-            orderStatus.setText("Order placed at: " +  now.get(Calendar.HOUR)+":"+now.get(Calendar.MINUTE));
+            onPlaceOrderAction();
         });
 
         //Controller for Order Served Button
-        orderServed.setOnAction(event -> {orderStatus.setText("Served at: " + now.get(Calendar.HOUR)+":"+now.get(Calendar.MINUTE));
+        orderServed.setOnAction(event -> {
+            onServedAction();
         });
 
         //Controller for Pay Order Button
         payOrder.setOnAction(event -> {
-            orderPaymentList= menuData.stream()
-                    .filter(x -> x.getQuantity()>0)
-                    .map(menuDataModel -> menuDataModel.getQuantity()*menuDataModel.getPrice())
-                    .collect(Collectors.toList());
-            setTotalAmount(orderPaymentList.stream().mapToDouble(e->e.doubleValue()).sum());
-            orderStatus.setText("Total amount: " + getTotalAmount());
-            System.out.println("--------------------------");
-            System.out.println("Table: " + tableNumber);
-            System.out.println("Total: " + getTotalAmount());
-            System.out.println("--------------------------");
-            PaymentAlert pay = new PaymentAlert(service);
-            pay.showPaymentAlert(tableNumber, this.getTotalAmount());
+            onPayOrderAction();
         });
+    }
+
+    private void onAddOrderAction(){
+        orderTable.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<MenuDataModel>(){
+            @Override
+            public void changed(ObservableValue<? extends MenuDataModel> observable, MenuDataModel oldValue, MenuDataModel newValue){
+                oldValue.setQuantity(orderQuantity.getValue());
+                orderTable.getSelectionModel().selectedItemProperty().removeListener(this);
+            }
+        });
+    }
+
+    private void onExitTableAction(){
+        Alert exitAlert = new Alert(Alert.AlertType.CONFIRMATION, "Exit table?",ButtonType.YES, ButtonType.NO);
+        Optional<ButtonType> result = exitAlert.showAndWait();
+        if (result.get() == ButtonType.YES){
+            Stage stage = (Stage) newOrder.getScene().getWindow();
+            stage.close();
+        }
     }
 
     public void initialize(){
@@ -134,23 +164,12 @@ public class OrdersGUIController {
 
         //Controller for Add to order Button
         addToOrder.setOnAction(event -> {
-            orderTable.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<MenuDataModel>(){
-            @Override
-            public void changed(ObservableValue<? extends MenuDataModel> observable, MenuDataModel oldValue, MenuDataModel newValue){
-            oldValue.setQuantity(orderQuantity.getValue());
-            orderTable.getSelectionModel().selectedItemProperty().removeListener(this);
-                }
-            });
+          onAddOrderAction();
         });
 
         //Controller for Exit table Button
         newOrder.setOnAction(event -> {
-            Alert exitAlert = new Alert(Alert.AlertType.CONFIRMATION, "Exit table?",ButtonType.YES, ButtonType.NO);
-            Optional<ButtonType> result = exitAlert.showAndWait();
-            if (result.get() == ButtonType.YES){
-                Stage stage = (Stage) newOrder.getScene().getWindow();
-                stage.close();
-                }
+            onExitTableAction();
         });
     }
 }
