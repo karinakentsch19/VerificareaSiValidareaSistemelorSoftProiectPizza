@@ -20,7 +20,6 @@ public class PaymentRepository {
     }
 
     private void readPayments(){
-        //ClassLoader classLoader = PaymentRepository.class.getClassLoader();
         File file = new File(filename);
         BufferedReader br = null;
         try {
@@ -42,7 +41,7 @@ public class PaymentRepository {
     }
 
     private Payment getPayment(String line){
-        if(line != null && line.matches("[1-8],(Cash|Card),\\d+(\\.\\d+)?")) {
+        if(line != null && line.matches("[1-8],(CASH|CARD),\\d+(\\.\\d+)?")) {
             StringTokenizer st = new StringTokenizer(line, ",");
             int tableNumber = Integer.parseInt(st.nextToken());
             String type = st.nextToken();
@@ -64,14 +63,13 @@ public class PaymentRepository {
     }
 
     public void writeAll(){
-        //ClassLoader classLoader = PaymentRepository.class.getClassLoader();
         File file = new File(filename);
 
         BufferedWriter bw = null;
         try {
             bw = new BufferedWriter(new FileWriter(file));
             for (Payment p:paymentList) {
-                System.out.println(p.toString());
+                fileLogger.info(p.toString());
                 bw.write(p.toString());
                 bw.newLine();
             }

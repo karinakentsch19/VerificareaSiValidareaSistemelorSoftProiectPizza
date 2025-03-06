@@ -28,40 +28,30 @@ public class Main extends Application {
         PizzaService service = new PizzaService(repoMenu, payRepo);
 
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/mainFXML.fxml"));
-        //VBox box = loader.load();
+
         Parent box = loader.load();
         MainGUIController ctrl = loader.getController();
         ctrl.setService(service);
         primaryStage.setTitle("PizzeriaX");
         primaryStage.setResizable(false);
         primaryStage.setAlwaysOnTop(false);
-        primaryStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
-            @Override
-            public void handle(WindowEvent event) {
-                Alert exitAlert = new Alert(Alert.AlertType.CONFIRMATION, "Would you like to exit the Main window?", ButtonType.YES, ButtonType.NO);
-                Optional<ButtonType> result = exitAlert.showAndWait();
-                if (result.get() == ButtonType.YES){
-                    //Stage stage = (Stage) this.getScene().getWindow();
-                    System.out.println("Incasari cash: "+service.getTotalAmount(PaymentType.Cash));
-                    System.out.println("Incasari card: "+service.getTotalAmount(PaymentType.Card));
+        primaryStage.setOnCloseRequest(event -> {
+            Alert exitAlert = new Alert(Alert.AlertType.CONFIRMATION, "Would you like to exit the Main window?", ButtonType.YES, ButtonType.NO);
+            Optional<ButtonType> result = exitAlert.showAndWait();
 
-                    primaryStage.close();
-                }
-                // consume event
-                else if (result.get() == ButtonType.NO){
-                    event.consume();
-                }
-                else {
-                    event.consume();
-
-                }
-
+            if (result.isPresent() && result.get() == ButtonType.YES) {
+                System.out.println("Incasari cash: " + service.getTotalAmount(PaymentType.CASH));
+                System.out.println("Incasari card: " + service.getTotalAmount(PaymentType.CARD));
+                primaryStage.close();
+            } else {
+                event.consume();
             }
         });
+
         primaryStage.setScene(new Scene(box));
         primaryStage.show();
         KitchenGUI kitchenGUI = new KitchenGUI();
-        kitchenGUI.KitchenGUI();
+        kitchenGUI.initializeKitchenGUI();
     }
 
     public static void main(String[] args) { launch(args);

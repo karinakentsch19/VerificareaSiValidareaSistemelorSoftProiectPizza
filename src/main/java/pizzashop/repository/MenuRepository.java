@@ -18,7 +18,6 @@ public class MenuRepository {
     }
 
     private void readMenu() {
-        //ClassLoader classLoader = MenuRepository.class.getClassLoader();
         File file = new File(filename);
         this.listMenu = new ArrayList();
         BufferedReader br = null;
@@ -41,7 +40,7 @@ public class MenuRepository {
     }
 
     private MenuDataModel getMenuItem(String line) {
-        if (line != null && line.matches("[a-zA-Z]+( [a-zA-Z]+)*,\\d+(\\.\\d+)?")) {
+        if (line != null && line.matches("[a-zA-Z ]+,\\d+(\\.\\d+)?")) {
             StringTokenizer st = new StringTokenizer(line, ",");
             String name = st.nextToken();
             double price = Double.parseDouble(st.nextToken());
