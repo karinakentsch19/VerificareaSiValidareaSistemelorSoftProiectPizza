@@ -19,6 +19,12 @@ public class PaymentRepository {
         readPayments();
     }
 
+    public PaymentRepository(String filename){
+        this.paymentList = new ArrayList<>();
+        PaymentRepository.filename = filename;
+        readPayments();
+    }
+
     private void readPayments(){
         File file = new File(filename);
         BufferedReader br = null;
@@ -54,6 +60,10 @@ public class PaymentRepository {
     }
 
     public void add(Payment payment){
+        if(payment.getTableNumber() < 1 || payment.getTableNumber() > 8)
+            throw new RuntimeException("Numarul mesei trebuie sa fie intre 1 si 8");
+        if(payment.getAmount() <= 0)
+            throw new RuntimeException("Valoarea achitata trebuie sa fie > 0");
         paymentList.add(payment);
         writeAll();
     }

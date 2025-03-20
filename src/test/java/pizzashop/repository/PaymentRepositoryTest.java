@@ -1,16 +1,19 @@
 package pizzashop.repository;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import pizzashop.model.Payment;
 import pizzashop.model.PaymentType;
 
 import java.io.*;
+import java.nio.file.Path;
 import java.util.StringTokenizer;
+import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 class PaymentRepositoryTest {
 
@@ -25,10 +28,13 @@ class PaymentRepositoryTest {
     private static Payment paymentBvaTC4;
 
     private static PaymentRepository paymentRepository;
-
+    private static File tempFile; // Store the reference to the temporary file
 
     @BeforeAll
-    static void setUp() {
+    static void setUp(@TempDir Path tempDir) throws IOException {
+        tempFile = tempDir.resolve("payments.txt").toFile();
+        tempFile.createNewFile();
+
         paymentEcpTC1 = new Payment(5, PaymentType.CASH, 2);
         paymentEcpTC2 = new Payment(3, PaymentType.CASH, 0);
         paymentEcpTC3 = new Payment(0, PaymentType.CASH, 4.2);
@@ -39,22 +45,18 @@ class PaymentRepositoryTest {
         paymentBvaTC3 = new Payment(1, PaymentType.CASH, 12.2);
         paymentBvaTC4 = new Payment(3, PaymentType.CASH, 0);
 
-        paymentRepository = new PaymentRepository();
+        paymentRepository = new PaymentRepository(tempFile.getAbsolutePath());
     }
 
-    @AfterEach
-    void tearDown() {
-    }
-
-    private static Payment getLastAddedPayment(String filename){
-        File file = new File(filename);
+    private static Payment getLastAddedPayment() {
+        //File file = new File(String.valueOf(tempFile));
         BufferedReader br = null;
         Payment payment = null;
         try {
-            br = new BufferedReader(new FileReader(file));
+            br = new BufferedReader(new FileReader(tempFile));
             String line = null;
-            while((line=br.readLine())!=null){
-                payment=getPayment(line);
+            while ((line = br.readLine()) != null) {
+                payment = getPayment(line);
             }
             br.close();
         } catch (FileNotFoundException e) {
@@ -65,74 +67,125 @@ class PaymentRepositoryTest {
         return payment;
     }
 
-    private static Payment getPayment(String line){
-        if(line != null) {
+    private static Payment getPayment(String line) {
+        if (line != null) {
             StringTokenizer st = new StringTokenizer(line, ",");
             int tableNumber = Integer.parseInt(st.nextToken());
             String type = st.nextToken();
             double amount = Double.parseDouble(st.nextToken());
             return new Payment(tableNumber, PaymentType.valueOf(type), amount);
-        }else{
+        } else {
             return null;
         }
     }
 
-    @Test
-    public void addPaymentECPTest1(){
-        paymentRepository.add(paymentEcpTC1);
-        Payment filePayment = getLastAddedPayment("data/payments.txt");
-        assertEquals(paymentEcpTC1.getTableNumber(), filePayment.getTableNumber());
-        assertEquals(paymentEcpTC1.getAmount(), filePayment.getAmount());
+    private static Stream<Payment> provideEcpPayments() {
+        return Stream.of(paymentEcpTC1, paymentEcpTC4);
+    }
+
+    private static Stream<Payment> provideBvaPayments() {
+        return Stream.of(paymentBvaTC2, paymentBvaTC3);
+    }
+
+    @AfterEach
+    void tearDown() {
+    }
+
+    @Tag("ECP_VALID")
+    @DisplayName("ECP VALID Test Cases for Add Payment method")
+    @ParameterizedTest
+    @MethodSource("provideEcpPayments")
+    public void addPaymentECPTest1(Payment payment) {
+        paymentRepository.add(payment);
+        Payment filePayment = getLastAddedPayment();
+        assertEquals(payment.getTableNumber(), filePayment.getTableNumber());
+        assertEquals(payment.getAmount(), filePayment.getAmount());
     }
 
     @Test
-    public void addPaymentECPTest2(){
-        paymentRepository.add(paymentEcpTC2);
-        Payment filePayment = getLastAddedPayment("data/payments.txt");
-        assertNotEquals(paymentEcpTC2.getAmount(), filePayment.getAmount());
+    @Tag("ECP_NEVALID")
+    @DisplayName("ECP TC2 for Add Payment method")
+    public void addPaymentECPTest2() {
+        try {
+            paymentRepository.add(paymentEcpTC2);
+            assert false;
+        }catch (RuntimeException e){
+            assert true;
+        }
+        Payment filePayment = getLastAddedPayment();
+        assert(filePayment == null || paymentEcpTC2.getAmount() != filePayment.getAmount());
     }
 
+//    @Test
+//    @Tag("ECP VALID")
+//    @DisplayName("ECP TC4 for Add Payment method")
+//    public void addPaymentECPTest4(){
+//        paymentRepository.add(paymentEcpTC4);
+//        Payment filePayment = getLastAddedPayment("data/payments.txt");
+//        assertEquals(paymentEcpTC4.getTableNumber(), filePayment.getTableNumber());
+//        assertEquals(paymentEcpTC4.getAmount(), filePayment.getAmount());
+//    }
+
     @Test
-    public void addPaymentECPTest3(){
-        paymentRepository.add(paymentEcpTC3);
-        Payment filePayment = getLastAddedPayment("data/payments.txt");
+    @Tag("ECP_NEVALID")
+    @DisplayName("ECP TC3 for Add Payment method")
+    public void addPaymentECPTest3() {
+        try {
+            paymentRepository.add(paymentEcpTC3);
+            assert false;
+        }catch (RuntimeException e){
+            assert true;
+        }
+        Payment filePayment = getLastAddedPayment();
         assertNotEquals(paymentEcpTC3.getTableNumber(), filePayment.getTableNumber());
     }
 
     @Test
-    public void addPaymentECPTest4(){
-        paymentRepository.add(paymentEcpTC4);
-        Payment filePayment = getLastAddedPayment("data/payments.txt");
-        assertEquals(paymentEcpTC4.getTableNumber(), filePayment.getTableNumber());
-        assertEquals(paymentEcpTC4.getAmount(), filePayment.getAmount());
+    @Tag("BVA_NEVALID")
+    @DisplayName("BVA TC1 for Add Payment method")
+    public void addPaymentBVATest1() {
+        try {
+            paymentRepository.add(paymentBvaTC1);
+            assert false;
+        }catch (RuntimeException e){
+            assert true;
+        }
+        Payment filePayment = getLastAddedPayment();
+        assert(filePayment == null || paymentBvaTC1.getTableNumber() != filePayment.getTableNumber());
     }
 
-    @Test
-    public void addPaymentBVATest1(){
-        paymentRepository.add(paymentBvaTC1);
-        Payment filePayment = getLastAddedPayment("data/payments.txt");
-        assertNotEquals(paymentBvaTC1.getTableNumber(), filePayment.getTableNumber());
+    @ParameterizedTest
+    @MethodSource("provideBvaPayments")
+    @Tag("BVA_VALID")
+    @DisplayName("BVA VALID Test Cases for Add Payment method")
+    public void addPaymentBVATest2(Payment payment) {
+        paymentRepository.add(payment);
+        Payment filePayment = getLastAddedPayment();
+        assertEquals(payment.getTableNumber(), filePayment.getTableNumber());
+        assertEquals(payment.getAmount(), filePayment.getAmount());
     }
 
+    //    @Test
+//    @Tag("BVA_VALID")
+//    @DisplayName("BVA TC3 for Add Payment method")
+//    public void addPaymentBVATest3(){
+//        paymentRepository.add(paymentBvaTC3);
+//        Payment filePayment = getLastAddedPayment("data/payments.txt");
+//        assertEquals(paymentBvaTC3.getTableNumber(), filePayment.getTableNumber());
+//        assertEquals(paymentBvaTC3.getAmount(), filePayment.getAmount());
+//    }
     @Test
-    public void addPaymentBVATest2(){
-        paymentRepository.add(paymentBvaTC2);
-        Payment filePayment = getLastAddedPayment("data/payments.txt");
-        assertEquals(paymentBvaTC2.getTableNumber(), filePayment.getTableNumber());
-        assertEquals(paymentBvaTC2.getAmount(), filePayment.getAmount());
-    }
-    @Test
-    public void addPaymentBVATest3(){
-        paymentRepository.add(paymentBvaTC3);
-        Payment filePayment = getLastAddedPayment("data/payments.txt");
-        assertEquals(paymentBvaTC3.getTableNumber(), filePayment.getTableNumber());
-        assertEquals(paymentBvaTC3.getAmount(), filePayment.getAmount());
-    }
-    @Test
-    public void addPaymentBVATest4(){
-        paymentRepository.add(paymentBvaTC4);
-        Payment filePayment = getLastAddedPayment("data/payments.txt");
-        assertNotEquals(paymentBvaTC4.getAmount(), filePayment.getAmount());
+    @Tag("BVA_NEVALID")
+    @DisplayName("BVA TC4 for Add Payment method")
+    public void addPaymentBVATest4() {
+        try {
+            paymentRepository.add(paymentBvaTC4);
+            assert false;
+        }catch (RuntimeException e){
+            assert true;
+        }
+        Payment filePayment = getLastAddedPayment();
+        assert(filePayment == null || paymentBvaTC4.getAmount() != filePayment.getAmount());
     }
 
 
