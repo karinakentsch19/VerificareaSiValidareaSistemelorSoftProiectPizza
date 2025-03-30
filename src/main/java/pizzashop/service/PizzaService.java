@@ -20,7 +20,11 @@ public class PizzaService {
 
     public List<MenuDataModel> getMenuData(){return menuRepo.getMenu();}
 
-    public List<Payment> getPayments(){return payRepo.getAll(); }
+    public List<Payment> getPayments(){
+        if(payRepo == null)
+            return null;
+        return payRepo.getAll();
+    }
 
     public void addPayment(int table, PaymentType type, double amount){
         Payment payment= new Payment(table, type, amount);
